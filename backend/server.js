@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow React to connect
+    origin: "https://feed-hope-ten.vercel.app/"
     methods: ["GET", "POST", "PUT"]
   }
 });
