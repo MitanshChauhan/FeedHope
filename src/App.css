@@ -1,0 +1,11 @@
+/* Cleaned default App.css */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex-grow: 1;
+  padding-top: 80px; /* Space for fixed navbar */
+}
