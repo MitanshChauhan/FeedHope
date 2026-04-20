@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { Camera, Mail, Phone, MapPin, Award, Heart, Edit3, Save, X, Building, Info } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import './Profile.css';
@@ -6,6 +6,7 @@ import './Profile.css';
 export default function Profile() {
   const { user, updateUser } = useContext(AuthContext);
   const [isEditing, setIsEditing] = useState(false);
+  const fileInputRef = useRef(null);
   const [editFormData, setEditFormData] = useState({
     phone: user?.phone || '',
     location: user?.location || '',
@@ -46,12 +47,69 @@ export default function Profile() {
     setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
   };
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const base64Img = canvas.toDataURL('image/jpeg', 0.8);
+
+          try {
+            const res = await fetch(`http://localhost:5000/api/users/${user.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                phone: user.phone || '', 
+                location: user.location || '', 
+                description: user.description || '', 
+                profile_image: base64Img 
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              updateUser(data.user);
+            } else {
+              alert("Failed to update avatar.");
+            }
+          } catch (err) {
+            alert("Network error updating avatar.");
+          }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async () => {
     try {
       const res = await fetch(`http://localhost:5000/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData)
+        body: JSON.stringify({ ...editFormData, profile_image: user.profile_image })
       });
       if (res.ok) {
         const data = await res.json();
@@ -71,8 +129,9 @@ export default function Profile() {
     <div className="container profile-container animate-fade-in">
       <div className="profile-header-card glass-card">
         <div className="profile-avatar-wrapper">
-          <img src="/default-pfp.png" alt="Profile avatar" className="profile-pfp" />
-          <button className="avatar-edit-btn" title="Change Avatar">
+          <img src={user.profile_image || "/default-pfp.png"} alt="Profile avatar" className="profile-pfp" style={{ objectFit: 'cover' }} />
+          <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleAvatarChange} />
+          <button className="avatar-edit-btn" title="Change Avatar" onClick={() => fileInputRef.current?.click()}>
             <Camera size={18} />
           </button>
         </div>

@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         setUser(data.user);
         localStorage.setItem('user', JSON.stringify(data.user));
-        return { success: true };
+        return { success: true, user: data.user };
       }
       return { success: false, error: data.error };
     } catch (err) {
@@ -64,7 +64,13 @@ export const AuthProvider = ({ children }) => {
   const updateUser = (updatedData) => {
     const newUser = { ...user, ...updatedData };
     setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    try {
+      localStorage.setItem('user', JSON.stringify(newUser));
+    } catch (e) {
+      console.warn('Could not save user to localStorage, quota exceeded. Saving without image.');
+      const { profile_image, ...userWithoutImage } = newUser;
+      localStorage.setItem('user', JSON.stringify(userWithoutImage));
+    }
   };
 
   return (

@@ -106,12 +106,14 @@
 .donation-card {
   background-color: white;
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-bounce);
   position: relative;
   top: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .donation-card:hover {

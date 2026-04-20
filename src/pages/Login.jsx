@@ -15,7 +15,11 @@ const Login = () => {
     setError('');
     const result = await login(email, password);
     if (result.success) {
-      navigate('/profile');
+      if (result.user && result.user.role === 'ngo') {
+        navigate('/ngo');
+      } else {
+        navigate('/donor');
+      }
     } else {
       setError(result.error || 'Failed to login');
     }

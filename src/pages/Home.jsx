@@ -45,7 +45,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="stats-section">
+      <section id="stats" className="stats-section">
         <div className="container stats-grid">
           <div className="stat-card">
             <h3>10,000+</h3>
@@ -62,47 +62,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Food Categories Section */}
-      <section className="food-categories-section container">
-        <h2 className="section-title">Explore by Food Type</h2>
-        <div className="categories-grid">
-          <div className="category-card" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800')" }}>
-            <div className="category-overlay"></div>
-            <div className="category-content">
-              <h3>Cooked Meals</h3>
-              <p>Freshly prepared food from events and restaurants.</p>
-              <Link to="/signup" className="category-link">View Available &rarr;</Link>
-            </div>
-          </div>
-          <div className="category-card" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=800')" }}>
-            <div className="category-overlay"></div>
-            <div className="category-content">
-              <h3>Fresh Produce</h3>
-              <p>Raw vegetables and fruits from local markets.</p>
-              <Link to="/signup" className="category-link">View Available &rarr;</Link>
-            </div>
-          </div>
-          <div className="category-card" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&q=80&w=800')" }}>
-            <div className="category-overlay"></div>
-            <div className="category-content">
-              <h3>Packaged Food</h3>
-              <p>Non-perishable items with longer shelf life.</p>
-              <Link to="/signup" className="category-link">View Available &rarr;</Link>
-            </div>
-          </div>
-          <div className="category-card" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800')" }}>
-            <div className="category-overlay"></div>
-            <div className="category-content">
-              <h3>Baked Goods</h3>
-              <p>Bread, pastries, and surplus from bakeries.</p>
-              <Link to="/signup" className="category-link">View Available &rarr;</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* How It Works Section */}
-      <section className="how-it-works container">
+      <section id="how-it-works" className="how-it-works container">
         <h2 className="section-title">How FeedHope Works</h2>
         <div className="steps-grid">
           <div className="step-card">
@@ -153,14 +114,14 @@ export default function Home() {
       </section>
 
       {/* Impact Banner */}
-      <section className="impact-banner">
+      <section id="about" className="impact-banner">
         <div className="impact-overlay"></div>
         <div className="container impact-content">
           <Leaf size={48} className="impact-icon" />
           <h2>Built to nourish. Designed to sustain.</h2>
           <p>Every meal rescued is a step towards zero hunger and a healthier planet. Join our mission to eliminate food waste and support communities sustainably.</p>
           <div className="impact-actions">
-            <Link to="/signup" className="btn btn-primary btn-large">Our Story</Link>
+            <Link to="/about" onClick={() => window.scrollTo(0, 0)} className="btn btn-primary btn-large">Our Story</Link>
           </div>
         </div>
       </section>
@@ -175,7 +136,7 @@ export default function Home() {
               Go to Dashboard
             </Link>
           ) : (
-            <Link to="/signup" className="btn btn-primary btn-large">
+            <Link to="/signup" onClick={() => window.scrollTo(0, 0)} className="btn btn-primary btn-large">
               Create Your Profile
             </Link>
           )}

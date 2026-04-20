@@ -1,9 +1,22 @@
 import { Link } from 'react-router-dom';
 import { HeartHandshake, Mail, MapPin, Phone, Instagram, Twitter, Linkedin, Facebook } from 'lucide-react';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import './Footer.css';
 
 export default function Footer() {
+  const { user } = useContext(AuthContext);
   const year = new Date().getFullYear();
+
+  const handleSmoothScroll = (e, targetId) => {
+    if (window.location.pathname === '/') {
+      e.preventDefault();
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <footer className="footer">
@@ -18,10 +31,8 @@ export default function Footer() {
             Premium food donation platform connecting surplus meals with those in need. Sustainably sharing, beautifully caring.
           </p>
           <div className="social-links">
-            <a href="#" aria-label="Instagram"><Instagram size={20} /></a>
-            <a href="#" aria-label="Twitter"><Twitter size={20} /></a>
-            <a href="#" aria-label="LinkedIn"><Linkedin size={20} /></a>
-            <a href="#" aria-label="Facebook"><Facebook size={20} /></a>
+            <a href="https://instagram.com/feed.hope" target="_blank" rel="noreferrer" aria-label="Instagram"><Instagram size={20} /> <span>feed.hope</span></a>
+            <a href="mailto:feedhope@gmail.com" aria-label="Email"><Mail size={20} /> <span>feedhope@gmail.com</span></a>
           </div>
         </div>
 
@@ -29,10 +40,10 @@ export default function Footer() {
         <div className="footer-col">
           <h4 className="footer-heading">Donate</h4>
           <ul className="footer-links">
-            <li><Link to="/signup">List Food</Link></li>
-            <li><Link to="/signup">How it Works</Link></li>
-            <li><Link to="/signup">Success Stories</Link></li>
-            <li><Link to="/signup">Become a Donor</Link></li>
+            <li><Link to={user ? '/donor' : '/signup'} onClick={() => window.scrollTo(0, 0)}>List Food</Link></li>
+            <li><Link to="/#how-it-works" onClick={(e) => handleSmoothScroll(e, 'how-it-works')}>How it Works</Link></li>
+            <li><Link to="/#stats" onClick={(e) => handleSmoothScroll(e, 'stats')}>Success Stories</Link></li>
+            <li><Link to={user ? '/donor' : '/signup'} onClick={() => window.scrollTo(0, 0)}>Become a Donor</Link></li>
           </ul>
         </div>
 
@@ -40,10 +51,10 @@ export default function Footer() {
         <div className="footer-col">
           <h4 className="footer-heading">NGOs</h4>
           <ul className="footer-links">
-            <li><Link to="/signup">Claim Food</Link></li>
-            <li><Link to="/signup">Our Partners</Link></li>
-            <li><Link to="/signup">Impact Statistics</Link></li>
-            <li><Link to="/signup">Register as NGO</Link></li>
+            <li><Link to={user ? '/ngo' : '/signup'} onClick={() => window.scrollTo(0, 0)}>Claim Food</Link></li>
+            <li><Link to="/#how-it-works" onClick={(e) => handleSmoothScroll(e, 'how-it-works')}>Our Partners</Link></li>
+            <li><Link to="/#stats" onClick={(e) => handleSmoothScroll(e, 'stats')}>Impact Statistics</Link></li>
+            <li><Link to={user ? '/ngo' : '/signup'} onClick={() => window.scrollTo(0, 0)}>Register as NGO</Link></li>
           </ul>
         </div>
 
@@ -53,7 +64,7 @@ export default function Footer() {
           <ul className="footer-contact">
             <li>
               <MapPin size={18} className="contact-icon" />
-              <span>4 Bungalow Road Mumbai </span>
+              <span>4 Bungalow Road Mumbai</span>
             </li>
             <li>
               <Phone size={18} className="contact-icon" />
@@ -65,9 +76,9 @@ export default function Footer() {
             </li>
           </ul>
           <ul className="footer-links mt-3">
-            <li><Link to="/">About Us</Link></li>
-            <li><Link to="/">Privacy Policy</Link></li>
-            <li><Link to="/">Terms of Service</Link></li>
+            <li><Link to="/about" onClick={() => window.scrollTo(0, 0)}>About Us</Link></li>
+            <li><Link to="/privacy" onClick={() => window.scrollTo(0, 0)}>Privacy Policy</Link></li>
+            <li><Link to="/terms" onClick={() => window.scrollTo(0, 0)}>Terms of Service</Link></li>
           </ul>
         </div>
       </div>
@@ -76,9 +87,9 @@ export default function Footer() {
         <div className="container bottom-content">
           <p>&copy; {year} FeedHope Platform. All rights reserved.</p>
           <div className="bottom-links">
-            <Link to="/">Privacy</Link>
-            <Link to="/">Terms</Link>
-            <Link to="/">Cookies</Link>
+            <Link to="/privacy" onClick={() => window.scrollTo(0, 0)}>Privacy</Link>
+            <Link to="/terms" onClick={() => window.scrollTo(0, 0)}>Terms</Link>
+            <Link to="/about" onClick={() => window.scrollTo(0, 0)}>About</Link>
           </div>
         </div>
       </div>

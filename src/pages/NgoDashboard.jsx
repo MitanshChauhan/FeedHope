@@ -10,8 +10,16 @@ export default function NgoDashboard() {
   const [myClaims, setMyClaims] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('available'); // 'available' | 'claims'
-  
+  const [claimingId, setClaimingId] = useState(null);
+  const [claimQty, setClaimQty] = useState('');
+  const [now, setNow] = useState(new Date());
+
   const socket = useContext(SocketContext);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     // 1. Fetch initial available data
@@ -34,48 +42,78 @@ export default function NgoDashboard() {
         setAvailableFood(prev => [listing, ...prev]);
       });
 
-      socket.on('listing_claimed', (id) => {
-        setAvailableFood(prev => prev.filter(f => f.id !== parseInt(id)));
+      socket.on('listing_updated', ({ id, newAvailable, newStatus }) => {
+        if (newStatus === 'Fully Claimed') {
+          setAvailableFood(prev => prev.filter(f => f.id !== parseInt(id)));
+        } else {
+          setAvailableFood(prev => prev.map(f => f.id === parseInt(id) ? { ...f, available_qty: newAvailable, status: newStatus } : f));
+        }
       });
 
-      // No need to listen to pickup/complete for NgoDashboard available list 
-      // as they are already removed when claimed.
+      socket.on('claim_updated', ({ id, status }) => {
+        setMyClaims(prev => prev.map(c => c.claim_id === parseInt(id) ? { ...c, claim_status: status } : c));
+      });
     }
 
     return () => {
       if (socket) {
         socket.off('new_listing');
-        socket.off('listing_claimed');
+        socket.off('listing_updated');
+        socket.off('claim_updated');
       }
     };
   }, [socket, user]);
 
-  const handleClaim = async (id) => {
+  const submitClaim = async (id, maxQty) => {
+    const qty = parseFloat(claimQty);
+    if (!qty || qty <= 0 || qty > maxQty) return;
+
     try {
-      await fetch(`http://localhost:5000/api/listings/${id}/claim`, { 
+      const res = await fetch(`http://localhost:5000/api/listings/${id}/claim`, { 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ngo_id: user.id })
+        body: JSON.stringify({ ngo_id: user.id, ngo_name: user?.name || 'NGO', claimed_qty: qty })
       });
-      // Move to myClaims locally
-      const item = availableFood.find(f => f.id === id);
-      if (item) {
-        setMyClaims(prev => [{ ...item, status: 'Claimed' }, ...prev]);
-        setAvailableFood(prev => prev.filter(f => f.id !== id));
+      const data = await res.json();
+
+      if (res.ok) {
+        const item = availableFood.find(f => f.id === id);
+        if (item) {
+          const newClaim = {
+            ...item,
+            claim_id: data.claim_id,
+            claimed_qty: qty,
+            claim_status: 'Claimed' // Default from server
+          };
+          setMyClaims(prev => [newClaim, ...prev]);
+        }
+        setClaimingId(null);
+        setClaimQty('');
+      } else {
+        alert(data.error);
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const handleStatusUpdate = async (id, statusEndpoint, newStatus) => {
+  const handleStatusUpdate = async (claimId, statusEndpoint, newStatus) => {
     try {
-      await fetch(`http://localhost:5000/api/listings/${id}/${statusEndpoint}`, { method: 'PUT' });
-      // Update locally
-      setMyClaims(prev => prev.map(f => f.id === id ? { ...f, status: newStatus } : f));
+      await fetch(`http://localhost:5000/api/claims/${claimId}/${statusEndpoint}`, { method: 'PUT' });
+      setMyClaims(prev => prev.map(f => f.claim_id === claimId ? { ...f, claim_status: newStatus } : f));
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const getTimeRemaining = (expiryStr) => {
+    if (!expiryStr || isNaN(Date.parse(expiryStr))) return expiryStr || 'N/A';
+    const expiry = new Date(expiryStr);
+    const diff = expiry - now;
+    if (diff <= 0) return 'Expired';
+    const h = Math.floor(diff / (1000 * 60 * 60));
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${h}h ${m}m remaining`;
   };
 
   const filteredFood = availableFood.filter(food => 
@@ -134,31 +172,55 @@ export default function NgoDashboard() {
             ) : (
               filteredFood.map(item => (
                 <div key={item.id} className="food-card">
-                  <div className="food-card-header">
-                    <h3>{item.title}</h3>
-                    <span className="distance-badge">Local</span>
-                  </div>
-                  
-                  <div className="food-card-provider">
-                    <MapPin size={16} className="detail-icon" />
-                    <span>Donated by <strong>{item.donor_name}</strong></span>
-                  </div>
-                  
-                  <div className="food-card-details">
-                    <div className="detail-item">
-                      <Tag size={16} className="detail-icon" />
-                      <span>{item.qty}</span>
+                  {item.image && (
+                    <img src={item.image} alt={item.title} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                  )}
+                  <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                    <div className="food-card-header">
+                      <h3>{item.title}</h3>
+                      <span className="distance-badge">Local</span>
                     </div>
-                    <div className="detail-item">
-                      <Clock size={16} className="detail-icon" />
-                      <span className="expiry-text">Exp: {item.expiry}</span>
+                    
+                    <div className="food-card-provider">
+                      <MapPin size={16} className="detail-icon" />
+                      <span>Donated by <strong>{item.donor_name}</strong></span>
                     </div>
-                  </div>
+                    
+                    <div className="food-card-details">
+                      <div className="detail-item">
+                        <Tag size={16} className="detail-icon" />
+                        <span>{item.available_qty} {item.unit} available</span>
+                      </div>
+                      <div className="detail-item">
+                        <Clock size={16} className="detail-icon" />
+                        <span className={getTimeRemaining(item.expiry) === 'Expired' ? 'text-danger fw-bold' : 'expiry-text'}>
+                          Exp: {getTimeRemaining(item.expiry)}
+                        </span>
+                      </div>
+                    </div>
 
-                  <div className="food-card-action">
-                    <button className="btn btn-primary" onClick={() => handleClaim(item.id)}>
-                      Claim Food
-                    </button>
+                    <div className="food-card-action">
+                      {claimingId === item.id ? (
+                        <div style={{display: 'flex', gap: '8px', width: '100%'}}>
+                          <input 
+                            type="number" 
+                            max={item.available_qty} 
+                            min="0.1" 
+                            step="0.1"
+                            placeholder="Amount"
+                            value={claimQty}
+                            onChange={(e) => setClaimQty(e.target.value)}
+                            style={{flex: 1, padding: '8px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)'}}
+                          />
+                          <button className="btn btn-primary" onClick={() => submitClaim(item.id, item.available_qty)}>Confirm</button>
+                          <button className="btn btn-secondary" onClick={() => setClaimingId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="btn btn-primary" onClick={() => setClaimingId(item.id)} disabled={getTimeRemaining(item.expiry) === 'Expired'}>
+                          Claim Partial/Full
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -177,40 +239,45 @@ export default function NgoDashboard() {
             </div>
           ) : (
             myClaims.map(item => (
-              <div key={item.id} className={`food-card status-${item.status.replace(/\s+/g, '-').toLowerCase()}`}>
-                <div className="food-card-header">
-                  <h3>{item.title}</h3>
-                  <span className={`status-badge ${item.status.toLowerCase()}`}>{item.status}</span>
-                </div>
-                
-                <div className="food-card-provider">
-                  <MapPin size={16} className="detail-icon" />
-                  <span>Donated by <strong>{item.donor_name}</strong></span>
-                </div>
-                
-                <div className="food-card-details">
-                  <div className="detail-item">
-                    <Tag size={16} className="detail-icon" />
-                    <span>{item.qty}</span>
+              <div key={item.claim_id} className={`food-card status-${item.claim_status.replace(/\s+/g, '-').toLowerCase()}`}>
+                {item.image && (
+                  <img src={item.image} alt={item.title} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                )}
+                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                  <div className="food-card-header">
+                    <h3>{item.title}</h3>
+                    <span className={`status-badge ${item.claim_status.toLowerCase()}`}>{item.claim_status}</span>
                   </div>
-                </div>
+                  
+                  <div className="food-card-provider">
+                    <MapPin size={16} className="detail-icon" />
+                    <span>Donated by <strong>{item.donor_name}</strong></span>
+                  </div>
+                  
+                  <div className="food-card-details">
+                    <div className="detail-item">
+                      <Tag size={16} className="detail-icon" />
+                      <span>Claimed: {item.claimed_qty} {item.unit}</span>
+                    </div>
+                  </div>
 
-                <div className="food-card-action claim-actions">
-                  {item.status === 'Claimed' && (
-                    <button className="btn btn-secondary w-full" onClick={() => handleStatusUpdate(item.id, 'pickup', 'Picked Up')}>
-                      Mark as Picked Up
-                    </button>
-                  )}
-                  {item.status === 'Picked Up' && (
-                    <button className="btn btn-primary w-full" onClick={() => handleStatusUpdate(item.id, 'complete', 'Completed')}>
-                      Confirm Delivery
-                    </button>
-                  )}
-                  {item.status === 'Completed' && (
-                    <button className="btn btn-secondary w-full" disabled>
-                      Successfully Delivered
-                    </button>
-                  )}
+                  <div className="food-card-action claim-actions">
+                    {item.claim_status === 'Claimed' && (
+                      <button className="btn btn-secondary w-full" onClick={() => handleStatusUpdate(item.claim_id, 'pickup', 'Picked Up')}>
+                        Mark as Picked Up
+                      </button>
+                    )}
+                    {item.claim_status === 'Picked Up' && (
+                      <button className="btn btn-primary w-full" onClick={() => handleStatusUpdate(item.claim_id, 'complete', 'Completed')}>
+                        Confirm Delivery
+                      </button>
+                    )}
+                    {item.claim_status === 'Completed' && (
+                      <button className="btn btn-secondary w-full" disabled>
+                        Successfully Delivered
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
