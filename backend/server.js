@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow React to connect
+    origin: "https://feed-hope-ten.vercel.app/"
     methods: ["GET", "POST", "PUT"]
   }
 });
@@ -303,6 +303,8 @@ app.get('/api/users/:id/stats', (req, res) => {
 });
 
 // Start server
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
